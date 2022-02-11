@@ -1,10 +1,11 @@
-use bevy::{core::FixedTimestep, prelude::*};
+use bevy::{core::FixedTimestep, prelude::*, sprite::collide_aabb};
 use rand::{thread_rng, Rng};
 
 #[derive(Component)]
 struct Player {
     speed: f32,
     direction: Vec3,
+    points: u8,
 }
 
 #[derive(Component)]
@@ -52,6 +53,7 @@ fn setup(mut commands: Commands, windows: Res<Windows>) {
         .insert(Player {
             speed: 200.0,
             direction: Vec3::new(1.0, 0.0, 0.0),
+            points: 0,
         });
 
     // Food
@@ -97,9 +99,28 @@ fn snake_movement_system(
 }
 
 fn food_system(
-    mut food_query: Query<(&mut Transform, With<Food>)>,
-    mut player_query: Query<(&Transform, (With<Player>, Without<Food>))>,
+    mut food_transform_query: Query<(&mut Transform, With<Food>)>,
+    mut player_transform_query: Query<(&Transform, (With<Player>, Without<Food>))>,
+    mut player_query: Query<&mut Player>,
+    windows: Res<Windows>,
 ) {
-    let mut food_transform = food_query.single_mut().0;
-    let player_transform = player_query.single_mut().0;
+    let mut food_transform = food_transform_query.single_mut().0;
+    let player_transform = player_transform_query.single_mut().0;
+    let mut player = player_query.single_mut();
+    let window = windows.get_primary().unwrap();
+
+    let collision = collide_aabb::collide(
+        food_transform.translation,
+        Vec2::new(food_transform.scale.x, food_transform.scale.y),
+        player_transform.translation,
+        Vec2::new(player_transform.scale.x, player_transform.scale.y),
+    );
+
+    // Collision happened
+    if collision.is_some() {
+        let mut rng = thread_rng();
+        player.points += 1;
+        food_transform.translation.x = rng.gen_range(-window.width() / 2.0, window.width() / 2.0);
+        food_transform.translation.y = rng.gen_range(-window.height() / 2.0, window.height() / 2.0);
+    }
 }
