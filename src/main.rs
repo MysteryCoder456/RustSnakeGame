@@ -100,12 +100,12 @@ fn snake_movement_system(
 
 fn food_system(
     mut food_transform_query: Query<(&mut Transform, With<Food>)>,
-    mut player_transform_query: Query<(&Transform, (With<Player>, Without<Food>))>,
+    player_transform_query: Query<(&Transform, (With<Player>, Without<Food>))>,
     mut player_query: Query<&mut Player>,
     windows: Res<Windows>,
 ) {
     let mut food_transform = food_transform_query.single_mut().0;
-    let player_transform = player_transform_query.single_mut().0;
+    let player_transform = player_transform_query.single().0;
     let mut player = player_query.single_mut();
     let window = windows.get_primary().unwrap();
 
