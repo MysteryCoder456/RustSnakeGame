@@ -1,4 +1,5 @@
 use bevy::{core::FixedTimestep, prelude::*};
+use rand::{thread_rng, Rng};
 
 #[derive(Component)]
 struct Player {
@@ -12,6 +13,13 @@ struct Food;
 const TIME_STEP: f32 = 1.0 / 60.0;
 fn main() {
     App::new()
+        .insert_resource(WindowDescriptor {
+            title: "Rusty Snake".to_string(),
+            width: 1280.0,
+            height: 720.0,
+            resizable: false,
+            ..Default::default()
+        })
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
         .add_system_set(
@@ -23,7 +31,9 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, windows: Res<Windows>) {
+    let mut rng = thread_rng();
+    let window = windows.get_primary().unwrap();
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 
     // Player
@@ -48,6 +58,11 @@ fn setup(mut commands: Commands) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
+                translation: Vec3::new(
+                    rng.gen_range(-window.width() / 2.0, window.width() / 2.0),
+                    rng.gen_range(-window.height() / 2.0, window.height() / 2.0),
+                    0.0,
+                ),
                 scale: Vec3::new(10.0, 10.0, 0.0),
                 ..Default::default()
             },
@@ -87,6 +102,4 @@ fn food_system(
 ) {
     let mut food_transform = food_query.single_mut().0;
     let player_transform = player_query.single_mut().0;
-
-    println!("{:?}", food_transform.scale);
 }
