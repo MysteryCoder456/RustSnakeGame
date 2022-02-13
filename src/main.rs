@@ -16,7 +16,7 @@ struct TailPiece {
 #[derive(Component)]
 struct Food;
 
-const TIME_STEP: f32 = 1.0 / 60.0;
+const TIME_STEP: f32 = 1.0 / 15.0;
 
 fn main() {
     App::new()
@@ -36,6 +36,7 @@ fn main() {
                 .with_system(tail_movement_system)
                 .with_system(food_system),
         )
+        .add_system(keyboard_input_system)
         .run();
 }
 
@@ -84,11 +85,8 @@ fn setup(mut commands: Commands, windows: Res<Windows>) {
         .insert(Food {});
 }
 
-fn snake_movement_system(
-    keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Player, &mut Transform)>,
-) {
-    let (mut player, mut transform) = query.single_mut();
+fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut query: Query<&mut Player>) {
+    let mut player = query.single_mut();
 
     for pressed_key in keyboard_input.get_pressed() {
         match pressed_key {
@@ -99,6 +97,10 @@ fn snake_movement_system(
             _ => continue,
         }
     }
+}
+
+fn snake_movement_system(mut query: Query<(&Player, &mut Transform)>) {
+    let (player, mut transform) = query.single_mut();
 
     let translation = &mut transform.translation;
     translation.x += player.direction.x * player.speed * TIME_STEP;
