@@ -5,13 +5,19 @@ use rand::{thread_rng, Rng};
 struct Player {
     speed: f32,
     direction: Vec3,
-    points: u8,
+    points: u16,
+}
+
+#[derive(Component)]
+struct TailPiece {
+    tail_position: u16,
 }
 
 #[derive(Component)]
 struct Food;
 
 const TIME_STEP: f32 = 1.0 / 60.0;
+
 fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
@@ -27,6 +33,7 @@ fn main() {
             SystemSet::new()
                 .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
                 .with_system(snake_movement_system)
+                .with_system(tail_movement_system)
                 .with_system(food_system),
         )
         .run();
@@ -98,7 +105,45 @@ fn snake_movement_system(
     translation.y += player.direction.y * player.speed * TIME_STEP;
 }
 
+fn tail_movement_system(
+    mut tail_query: Query<(&TailPiece, &mut Transform)>,
+    player_query: Query<(&Transform, (With<Player>, Without<TailPiece>))>,
+) {
+    if tail_query.is_empty() {
+        return;
+    }
+
+    let mut tail = tail_query
+        .iter_mut()
+        .map(|(tp, transform)| (tp.tail_position, transform))
+        .collect::<Vec<(u16, Mut<Transform>)>>();
+
+    let player_transform = player_query.single().0;
+    let mut i = tail.len() - 1;
+
+    while i >= 0 {
+        let tail_pos = tail[i].0;
+        let next_position: Vec3;
+
+        if tail_pos == 0 {
+            next_position = player_transform.translation.clone();
+        } else {
+            next_position = tail[tail_pos as usize - 1].1.translation.clone();
+        }
+
+        let transform = &mut tail[i].1;
+        transform.translation = next_position;
+
+        if i == 0 {
+            break;
+        } else {
+            i -= 1;
+        }
+    }
+}
+
 fn food_system(
+    mut commands: Commands,
     mut food_transform_query: Query<(&mut Transform, With<Food>)>,
     player_transform_query: Query<(&Transform, (With<Player>, Without<Food>))>,
     mut player_query: Query<&mut Player>,
@@ -118,6 +163,22 @@ fn food_system(
 
     // Collision happened
     if collision.is_some() {
+        commands
+            .spawn_bundle(SpriteBundle {
+                transform: Transform {
+                    scale: Vec3::new(25.0, 25.0, 0.0),
+                    ..Default::default()
+                },
+                sprite: Sprite {
+                    color: Color::SEA_GREEN,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(TailPiece {
+                tail_position: player.points,
+            });
+
         let mut rng = thread_rng();
         player.points += 1;
         food_transform.translation.x = rng.gen_range(-window.width() / 2.0, window.width() / 2.0);
