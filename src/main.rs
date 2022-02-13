@@ -16,7 +16,7 @@ struct TailPiece {
 #[derive(Component)]
 struct Food;
 
-const TIME_STEP: f32 = 1.0 / 15.0;
+const TIME_STEP: f32 = 1.0 / 5.0;
 
 fn main() {
     App::new()
@@ -59,7 +59,7 @@ fn setup(mut commands: Commands, windows: Res<Windows>) {
             ..Default::default()
         })
         .insert(Player {
-            speed: 200.0,
+            speed: 30.0,
             direction: Vec3::new(1.0, 0.0, 0.0),
             points: 0,
         });
@@ -103,8 +103,8 @@ fn snake_movement_system(mut query: Query<(&Player, &mut Transform)>) {
     let (player, mut transform) = query.single_mut();
 
     let translation = &mut transform.translation;
-    translation.x += player.direction.x * player.speed * TIME_STEP;
-    translation.y += player.direction.y * player.speed * TIME_STEP;
+    translation.x += player.direction.x * player.speed;
+    translation.y += player.direction.y * player.speed;
 }
 
 fn tail_movement_system(
@@ -123,7 +123,7 @@ fn tail_movement_system(
     let player_transform = player_query.single().0;
     let mut i = tail.len() - 1;
 
-    while i >= 0 {
+    loop {
         let tail_pos = tail[i].0;
         let next_position: Vec3;
 
@@ -136,7 +136,7 @@ fn tail_movement_system(
         let transform = &mut tail[i].1;
         transform.translation = next_position;
 
-        if i == 0 {
+        if i <= 0 {
             break;
         } else {
             i -= 1;
@@ -158,16 +158,16 @@ fn food_system(
 
     let collision = collide_aabb::collide(
         food_transform.translation,
-        Vec2::new(food_transform.scale.x, food_transform.scale.y),
+        food_transform.scale.truncate(),
         player_transform.translation,
-        Vec2::new(player_transform.scale.x, player_transform.scale.y),
+        player_transform.scale.truncate(),
     );
 
-    // Collision happened
     if collision.is_some() {
         commands
             .spawn_bundle(SpriteBundle {
                 transform: Transform {
+                    translation: player_transform.translation.clone(),
                     scale: Vec3::new(25.0, 25.0, 0.0),
                     ..Default::default()
                 },
