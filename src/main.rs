@@ -1,5 +1,6 @@
-use bevy::{core::FixedTimestep, prelude::*, sprite::collide_aabb};
+use bevy::{core::FixedTimestep, prelude::*};
 use rand::{thread_rng, Rng};
+mod collision;
 
 #[derive(Component)]
 struct Player {
@@ -156,14 +157,14 @@ fn food_system(
     let mut player = player_query.single_mut();
     let window = windows.get_primary().unwrap();
 
-    let collision = collide_aabb::collide(
-        food_transform.translation,
+    let collision = collision::collide_aabb(
+        food_transform.translation.truncate(),
         food_transform.scale.truncate(),
-        player_transform.translation,
+        player_transform.translation.truncate(),
         player_transform.scale.truncate(),
     );
 
-    if collision.is_some() {
+    if collision {
         commands
             .spawn_bundle(SpriteBundle {
                 transform: Transform {
